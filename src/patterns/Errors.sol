@@ -1,61 +1,70 @@
 // SPDX-License-Identifier: MIT
+// Inspired by Solidity By Example: https://solidity-by-example.org/error/
 
 pragma solidity ^0.8.30;
 
+// ███▓▒░░────────────────────────────────────────────────▒▓███
+// ░        ░░       ░░░       ░░░░      ░░░       ░░░░      ░░
+// ▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒▒▒▒
+// ▓      ▓▓▓▓       ▓▓▓       ▓▓▓  ▓▓▓▓  ▓▓       ▓▓▓▓      ▓▓
+// █  ████████  ███  ███  ███  ███  ████  ██  ███  █████████  █
+// █        ██  ████  ██  ████  ███      ███  ████  ███      ██
+// ███▓▒░░─────────────────── ERRORS ─────────────────────▒▓███
+
 contract Errors {
-  error Errors__InsufficientBalance(uint256 withdrawAmount, uint256 balance);
-  error Errors__NotOwner();
-  error Errors__ZeroDeposit();
-  error Errors__TransactionFailed();
+    error Errors__InsufficientBalance(uint256 withdrawAmount, uint256 balance);
+    error Errors__NotOwner();
+    error Errors__ZeroDeposit();
+    error Errors__TransactionFailed();
 
-  address private immutable i_owner;
-  mapping(address => uint256) private s_balances;
+    address private immutable i_owner;
+    mapping(address => uint256) private s_balances;
 
-  constructor() {
-    i_owner = msg.sender;
-  }
-
-  function deposit() external payable {
-    if (msg.value == 0) {
-      revert Errors__ZeroDeposit();
+    constructor() {
+        i_owner = msg.sender;
     }
 
-    s_balances[msg.sender] += msg.value;
-  }
+    function deposit() external payable {
+        if (msg.value == 0) {
+            revert Errors__ZeroDeposit();
+        }
 
-  function withdraw(uint256 withdrawAmount) external {
-    uint256 balance = s_balances[msg.sender];
-
-    if (withdrawAmount > balance) {
-      revert Errors__InsufficientBalance(withdrawAmount, balance);
+        s_balances[msg.sender] += msg.value;
     }
 
-    s_balances[msg.sender] -= withdrawAmount;
+    function withdraw(uint256 withdrawAmount) external {
+        uint256 balance = s_balances[msg.sender];
 
-    (bool success, ) = address(msg.sender).call{value: withdrawAmount}("");
-    if (!success) {
-      revert Errors__TransactionFailed();
+        if (withdrawAmount > balance) {
+            revert Errors__InsufficientBalance(withdrawAmount, balance);
+        }
+
+        s_balances[msg.sender] -= withdrawAmount;
+
+        (bool success,) = address(msg.sender).call{value: withdrawAmount}("");
+        if (!success) {
+            revert Errors__TransactionFailed();
+        }
     }
-  }
 
-  function sweep(address to) external {
-    if (msg.sender != i_owner) {
-      revert Errors__NotOwner();
+    function sweep(address to) external {
+        if (msg.sender != i_owner) {
+            revert Errors__NotOwner();
+        }
+
+        uint256 balance = address(this).balance;
+
+        (bool success,) = to.call{value: balance}("");
+        if (!success) {
+            revert Errors__TransactionFailed();
+        }
     }
 
-    uint256 balance = address(this).balance;
-
-    (bool success, ) = to.call{value: balance}("");
-    if (!success) {
-      revert Errors__TransactionFailed();
+    function getBalance(address user) public view returns (uint256) {
+        return (s_balances[user]);
     }
-  }
 
-  function getBalance(address user) public view returns (uint256) {
-    return (s_balances[user]);
-  }
-
-  function getOwner() public view returns (address) {
-    return i_owner;
-  }
+    function getOwner() public view returns (address) {
+        return i_owner;
+    }
 }
